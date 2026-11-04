@@ -26,20 +26,26 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
+            ndk;27.0.12077973
+            cmake;3.22.1
 
-      - name: Install Android tools
-        run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
+      - name: Accept Licenses
+        run: yes | sdkmanager --licenses
 
       - name: Download Whisper AI
         run: |
-          git clone --depth 1 --recurse-submodules https://github.com/ggml-org/whisper.cpp.git whisper.cpp
+          git clone --depth 1 --recurse-submodules \
+          https://github.com/ggml-org/whisper.cpp.git whisper.cpp
 
       - name: Download AI Model
         run: |
           mkdir -p whisper.cpp/examples/whisper.android/app/src/main/assets/models
-          curl -L --fail \
+          curl -L --fail --retry 3 \
           https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin \
           -o whisper.cpp/examples/whisper.android/app/src/main/assets/models/ggml-base.bin
 
@@ -54,3 +60,4 @@ jobs:
         with:
           name: SONG-TO-WORDS-V2-APK
           path: whisper.cpp/examples/whisper.android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
