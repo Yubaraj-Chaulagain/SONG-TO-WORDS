@@ -26,21 +26,21 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
-            ndk;27.0.12077973
-            cmake;3.22.1
+
+      - name: Install Android Packages
+        run: |
+          sdkmanager --install "platform-tools"
+          sdkmanager --install "platforms;android-35"
+          sdkmanager --install "build-tools;35.0.0"
+          sdkmanager --install "ndk;27.0.12077973"
+          sdkmanager --install "cmake;3.22.1"
 
       - name: Accept Licenses
-        run: yes | sdkmanager --licenses
+        run: yes | sdkmanager --licenses || true
 
       - name: Download Whisper AI
         run: |
-          git clone --depth 1 --recurse-submodules \
-          https://github.com/ggml-org/whisper.cpp.git whisper.cpp
+          git clone --depth 1 --recurse-submodules https://github.com/ggml-org/whisper.cpp.git whisper.cpp
 
       - name: Download AI Model
         run: |
