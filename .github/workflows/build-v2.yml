@@ -1,10 +1,11 @@
-name: SONG TO WORDS - TINY AI APK
+name: SONG TO WORDS APK Build
 
 on:
   workflow_dispatch:
   push:
     branches:
       - main
+      - master
 
 permissions:
   contents: read
@@ -14,60 +15,42 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
 
-      # Step 1: Clone Whisper
-      - name: Clone Whisper
-        run: |
-          git clone --depth 1 --recurse-submodules \
-          https://github.com/ggml-org/whisper.cpp.git whisper
-
-      # Step 2: Setup Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
-          cache: gradle
+          java-version: '17'
 
-      # Step 3: Setup Android SDK
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 9.0
-
-      # Step 4: Download Tiny AI Model
-      - name: Download Tiny AI Model
         run: |
-          mkdir -p whisper/examples/whisper.android/app/src/main/assets/models
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "/usr/local/lib/android/sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "/usr/local/lib/android/sdk/platform-tools" >> $GITHUB_PATH
 
-          curl -fL --retry 3 \
-          https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin \
-          -o whisper/examples/whisper.android/app/src/main/assets/models/ggml-tiny.bin
-
-          ls -lh whisper/examples/whisper.android/app/src/main/assets/models/
-
-      # Step 5: Add Sample Audio
-      - name: Add Sample Audio
+      - name: Install Android Packages
         run: |
-          mkdir -p whisper/examples/whisper.android/app/src/main/assets/samples
+          yes | sdkmanager --licenses || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-          cp whisper/samples/jfk.wav \
-          whisper/examples/whisper.android/app/src/main/assets/samples/
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      # Step 6: Build APK
       - name: Build APK
         run: |
-          cd whisper/examples/whisper.android
+          if [ -f gradlew ]; then
+            chmod +x gradlew
+            ./gradlew assembleDebug
+          else
+            gradle assembleDebug
+          fi
 
-          chmod +x gradlew
-
-          ./gradlew assembleRelease --no-daemon --stacktrace
-
-      # Step 7: Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SONG-TO-WORDS-TINY-APK
-          path: whisper/examples/whisper.android/app/build/outputs/apk/release/*.apk
+          name: SONG-TO-WORDS-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
