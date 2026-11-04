@@ -1,4 +1,4 @@
-name: Build SONG TO WORDS APK
+name: Build SONG TO WORDS V2
 
 on:
   workflow_dispatch:
@@ -7,12 +7,15 @@ on:
       - main
       - master
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java
@@ -21,16 +24,33 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android tools
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
+
+      - name: Download Whisper AI
+        run: |
+          git clone --depth 1 --recurse-submodules https://github.com/ggml-org/whisper.cpp.git whisper.cpp
+
+      - name: Download AI Model
+        run: |
+          mkdir -p whisper.cpp/examples/whisper.android/app/src/main/assets/models
+          curl -L --fail \
+          https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin \
+          -o whisper.cpp/examples/whisper.android/app/src/main/assets/models/ggml-base.bin
 
       - name: Build APK
-        run: gradle assembleDebug
+        working-directory: whisper.cpp/examples/whisper.android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SONG-TO-WORDS-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: SONG-TO-WORDS-V2-APK
+          path: whisper.cpp/examples/whisper.android/app/build/outputs/apk/debug/*.apk
